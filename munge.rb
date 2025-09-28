@@ -74,8 +74,9 @@ class Munge < Formula
     unless key_file.exist?
       system sbin/"mungekey", "--create", "--keyfile=#{key_file}"
       key_file.chmod 0400
-    end
-  end
+    else
+      key_file.chmod 0400
+    end  end
 
   service do
     run [opt_sbin/"munged", "--foreground"]
