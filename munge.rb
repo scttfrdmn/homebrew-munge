@@ -77,7 +77,6 @@ class Munge < Formula
     log_path opt_prefix/"var/log/munge/munged.log"
     error_log_path opt_prefix/"var/log/munge/munged.log"
   end
-
   test do
     system bin/"munge", "--version"
   end

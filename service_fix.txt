@@ -1,0 +1,7 @@
+  service do
+    run [opt_sbin/"munged", "--foreground"]
+    keep_alive true
+    working_dir opt_prefix/"var/lib/munge"
+    log_path opt_prefix/"var/log/munge/munged.log"
+    error_log_path opt_prefix/"var/log/munge/munged.log"
+  end
