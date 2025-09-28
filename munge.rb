@@ -48,11 +48,48 @@ class Munge < Formula
     end
 
     system "autoreconf", "-fiv"
-    system "./configure", "--prefix=#{prefix}", "--with-openssl-prefix=#{Formula["openssl@3"].opt_prefix}"
+    system "./configure", 
+           "--prefix=#{prefix}",
+           "--sysconfdir=#{etc}",
+           "--localstatedir=#{var}",
+           "--with-openssl-prefix=#{Formula["openssl@3"].opt_prefix}"
     system "make", "install"
+  end
+
+  def post_install
+    # Create required runtime directories
+    (etc/"munge").mkpath
+    (var/"lib/munge").mkpath
+    (var/"log/munge").mkpath  
+    (var/"run/munge").mkpath
+    
+    # Set secure permissions on sensitive directories
+    (var/"lib/munge").chmod 0700
+    (var/"log/munge").chmod 0700
+    (var/"run/munge").chmod 0755
+    (etc/"munge").chmod 0700
+
+    # Generate a default key if one doesn't exist
+    key_file = etc/"munge/munge.key"
+    unless key_file.exist?
+      system sbin/"mungekey", "--create", "--keyfile=#{key_file}"
+      key_file.chmod 0400
+    end
+  end
+
+  service do
+    run [opt_sbin/"munged", "--foreground"]
+    keep_alive true
+    working_dir var/"lib/munge"
+    log_path var/"log/munge/munged.log"
+    error_log_path var/"log/munge/munged.log"
   end
 
   test do
     system bin/"munge", "--version"
+    # Start daemon in background for testing
+    fork { exec sbin/"munged", "--foreground" }
+    sleep 2
+    system "sh", "-c", "#{bin}/munge -n | #{bin}/unmunge"
   end
 end
