@@ -11,6 +11,7 @@ class Munge < Formula
   depends_on "openssl@3"
 
   def install
+    # macOS build fixes - only replace if patterns exist
     if File.read("configure.ac").include?("src/libmissing/Makefile")
       inreplace "configure.ac", /.*src\/libmissing\/Makefile.*\n/, ""
     end
@@ -19,6 +20,7 @@ class Munge < Formula
       inreplace "src/Makefile.am", /.*libmissing.*\n/, ""
     end
     
+    # Remove libmissing references from subdirectory Makefiles
     Dir.glob("src/*/Makefile.am").each do |file|
       content = File.read(file)
       if content.include?("libmissing")
@@ -29,6 +31,7 @@ class Munge < Formula
       end
     end
 
+    # Create dummy headers in ALL directories that might need them
     ["src/munge", "src/munged", "src/mungekey"].each do |dir|
       mkdir_p dir
       (buildpath/"#{dir}/missing.h").write "#include <arpa/inet.h>\n#include <string.h>"
@@ -37,6 +40,7 @@ class Munge < Formula
       (buildpath/"#{dir}/inet_ntop.h").write "#include <arpa/inet.h>"
     end
     
+    # Fix inet_ntop declaration if needed
     unmunge_content = File.read("src/munge/unmunge.c")
     if unmunge_content.include?('#include "missing.h"') && !unmunge_content.include?("extern const char *inet_ntop")
       inreplace "src/munge/unmunge.c", /#include "missing\.h".*/, 
@@ -53,6 +57,8 @@ class Munge < Formula
   end
 
   def post_install
+  def post_install
+    # Create MUNGE directories in standard Unix locations
     ["/usr/local/etc/munge", "/usr/local/var/lib/munge", 
      "/usr/local/var/log/munge", "/usr/local/var/run/munge"].each do |dir|
       system "sudo", "mkdir", "-p", dir
@@ -60,17 +66,17 @@ class Munge < Formula
       system "sudo", "chown", ENV["USER"], dir
     end
 
+    # Generate a default key if one doesn't exist
     key_file = "/usr/local/etc/munge/munge.key"
     unless File.exist?(key_file)
       system sbin/"mungekey", "--create", "--keyfile=#{key_file}"
       system "chmod", "0400", key_file
     end
   end
-
   service do
     run [opt_sbin/"munged", "--foreground"]
     keep_alive true
-    working_dir "/usr/local/var/lib/munge"
+    working_dir "/usr/local/var/lib/munge" 
     log_path "/usr/local/var/log/munge/munged.log"
     error_log_path "/usr/local/var/log/munge/munged.log"
   end
