@@ -2,7 +2,7 @@ class Munge < Formula
   desc "MUNGE Uid 'N' Gid Emporium - Authentication service for HPC clusters"
   homepage "https://dun.github.io/munge/"
   url "https://github.com/dun/munge/releases/download/munge-0.5.16/munge-0.5.16.tar.xz"
-  sha256 "0fd3b47ebeab9b5a34c1b7f17b6c0adb582e34c8c6b4b0e1bec57d2e28b98a52"
+  sha256 "6fa6f14de41064c2b56422592df7ad1de2af483912c54460863db2827e6a2861"
   license "GPL-3.0-or-later"
 
   depends_on "autoconf" => :build
