@@ -31,11 +31,9 @@ class Munge < Formula
       end
     end
 
-    # Create dummy headers where needed
-    mkdir_p "src/munged"
-    mkdir_p "src/mungekey"
-    
-    ["src/munged", "src/mungekey"].each do |dir|
+    # Create dummy headers in ALL directories that might need them
+    ["src/munge", "src/munged", "src/mungekey"].each do |dir|
+      mkdir_p dir
       (buildpath/"#{dir}/missing.h").write "#include <arpa/inet.h>\n#include <string.h>"
       (buildpath/"#{dir}/strlcpy.h").write "#include <string.h>"
       (buildpath/"#{dir}/strlcat.h").write "#include <string.h>" 
