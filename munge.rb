@@ -46,36 +46,56 @@ class Munge < Formula
     system "autoreconf", "-fiv"
     system "./configure", 
            "--prefix=#{prefix}",
-           "--sysconfdir=/usr/local/etc",
-           "--localstatedir=/usr/local/var",
+           "--sysconfdir=#{prefix}/etc",
+           "--localstatedir=#{prefix}/var",
            "--with-openssl-prefix=#{Formula["openssl@3"].opt_prefix}"
     system "make", "install"
   end
 
   def post_install
-    ["/usr/local/etc/munge", "/usr/local/var/lib/munge", 
-     "/usr/local/var/log/munge", "/usr/local/var/run/munge"].each do |dir|
-      system "sudo", "mkdir", "-p", dir
-      system "sudo", "chmod", "0700", dir
-      system "sudo", "chown", ENV["USER"], dir
-    end
+    (prefix/"etc/munge").mkpath
+    (prefix/"var/lib/munge").mkpath
+    (prefix/"var/log/munge").mkpath  
+    (prefix/"var/run/munge").mkpath
+    
+    (prefix/"etc/munge").chmod 0700
+    (prefix/"var/lib/munge").chmod 0700
+    (prefix/"var/log/munge").chmod 0700
+    (prefix/"var/run/munge").chmod 0755
 
-    key_file = "/usr/local/etc/munge/munge.key"
-    unless File.exist?(key_file)
+    key_file = prefix/"etc/munge/munge.key"
+    unless key_file.exist?
       system sbin/"mungekey", "--create", "--keyfile=#{key_file}"
-      system "chmod", "0400", key_file
     end
+    key_file.chmod 0400
   end
 
   service do
     run [opt_sbin/"munged", "--foreground"]
     keep_alive true
-    working_dir "/usr/local/var/lib/munge"
-    log_path "/usr/local/var/log/munge/munged.log"
-    error_log_path "/usr/local/var/log/munge/munged.log"
+    working_dir opt_prefix/"var/lib/munge"
+    log_path opt_prefix/"var/log/munge/munged.log"
+    error_log_path opt_prefix/"var/log/munge/munged.log"
   end
 
   test do
     system bin/"munge", "--version"
   end
 end
+
+  def caveats
+    <<~EOS
+      MUNGE has been configured to use paths within the Homebrew prefix.
+      
+      Configuration: #{opt_prefix}/etc/munge/
+      Runtime files: #{opt_prefix}/var/lib/munge/
+      
+      If you encounter permission errors, you may need to temporarily
+      adjust Homebrew directory permissions with:
+        sudo chmod g-w #{HOMEBREW_PREFIX}/etc #{HOMEBREW_PREFIX}/var
+      
+      For production use, consider copying munge.key from your cluster:
+        cp /path/to/cluster/munge.key #{opt_prefix}/etc/munge/
+        chmod 400 #{opt_prefix}/etc/munge/munge.key
+    EOS
+  end
